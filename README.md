@@ -7,3 +7,11 @@
 6. Schema For Car Rentals
 7. Endpoint To Delete Rentals 
 8. Endpoint To Search(Filter)
+   
+   -----
+
+## For forgot Password
+1. we take the users email
+2. we check if the user is in our db
+3. we would generate an otp
+4. we would send an email. (pend)
