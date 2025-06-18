@@ -1,13 +1,18 @@
 const Car = require("../models/car.schema");
-
+const User = require("../models/user.schema");
 
 const addCar = async (req, res) => {
   const { make, model, year, price, description, color, brand } = req.body;
+  const id = req.user.id;
   // Validate Inputs
   if (!make || !model || !year || !price) {
     return res.status(400).json({ message: "All fields are required" });
   }
   try {
+    const user = await User.findById(id);
+    if (user.isAdmin !== true) {
+      return res.status(403).json({ message: "Only admins can add cars" });
+    }
     // Create new car
     const newCar = new Car({
       make,
@@ -30,8 +35,14 @@ const addCar = async (req, res) => {
 // Edit A Car
 const editCar = async (req, res) => {
   const { carId } = req.params;
+  const id = req.user.id;
   const { make, model, year, price, description, color, brand } = req.body;
   try {
+    const user = await User.findById(id);
+    if (user.isAdmin !== true) {
+      return res.status(403).json({ message: "Only admins can add cars" });
+    }
+
     const car = await Car.findById(carId);
     if (!car) {
       return res.status(404).json({ message: "Car not found" });
@@ -55,7 +66,13 @@ const editCar = async (req, res) => {
 // Delete A Car
 const deleteCar = async (req, res) => {
   const { carId } = req.params;
+  const id = req.user.id;
+
   try {
+    const user = await User.findById(id);
+    if (user.isAdmin !== true) {
+      return res.status(403).json({ message: "Only admins can add cars" });
+    }
     const car = await Car.findByIdAndDelete(carId);
     if (!car) {
       return res.status(404).json({ message: "Car not found" });
@@ -79,24 +96,24 @@ const getAllCars = async (req, res) => {
 };
 
 // Search Cars By make
-const searchCars = async (req, res)=> {
- const { make } = req.query;
- try{
-    const car = await Car.findOne({ make: make });
+const searchCars = async (req, res) => {
+  const { make } = req.query;
+  try {
+    const car = await Car.find({ make: make });
     if (!car) {
       return res.status(404).json({ message: "Car not found" });
     }
     return res.status(200).json({ car });
- }catch(err){
+  } catch (err) {
     console.error("Error searching cars:", err);
     return res.status(500).json({ message: "Internal Server Error" });
   }
- }
+};
 
- module.exports = {
-    addCar,
-    editCar,
-    deleteCar,
-    getAllCars,
-    searchCars,
+module.exports = {
+  addCar,
+  editCar,
+  deleteCar,
+  getAllCars,
+  searchCars,
 };
