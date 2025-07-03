@@ -36,6 +36,32 @@ const carSchema = new mongoose.Schema({
     brand: {
         type: String,
         trim: true
+    },
+    startDate: {
+        type: Date,
+        trim: true
+    },
+    endDate: {
+        type: Date,
+        trim: true
+    },
+    totalPrice: {
+        type: Date,
+        trim: true
+    },
+    status: {
+        type: Boolean,
+        enum: ['pending', 'approved', 'rejected', 'not-rented'],
+        default: 'not-rented'
+    },
+    rentedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    isRented: {
+        type: String,
+        trim: true
     }
 }, {
     timestamps: true,
