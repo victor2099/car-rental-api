@@ -50,7 +50,7 @@ const carSchema = new mongoose.Schema({
         trim: true
     },
     status: {
-        type: Boolean,
+        type: String,
         enum: ['pending', 'approved', 'rejected', 'not-rented'],
         default: 'not-rented'
     },
