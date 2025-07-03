@@ -15,5 +15,4 @@ router.post('/verify-otp', verifyOtp);
 
 
 
-
 module.exports = router
