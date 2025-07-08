@@ -1,6 +1,8 @@
 const User = require("../models/user.schema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { sendEmail } = require("../config/email");
+// Salt rounds for password hashing
 const saltRounds = 10;
 
 const signup = async (req, res) => {
@@ -24,17 +26,26 @@ const signup = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    const token = await jwt.sign({email: email}, process.env.JWT_SECRET, {expiresIn: process.env.JWT_EXPIRATION});
+    const token = await jwt.sign({ email: email }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRATION,
+    });
 
     // Create new user
     const newUser = new User({
       name,
       email,
       password: hashedPassword,
-      token: token
+      token: token,
     });
     await newUser.save();
-     
+
+    // Send Email
+    await sendEmail(
+      email,
+      "Welcome to Our Car Rental Service",
+      `Hello ${name},\n\nThank you for signing up! Your account has been created successfully.\n\nBest regards,\nYour Service Team`
+    );
+
     return res
       .status(201)
       .json({ message: "User Created Succesfully", newUser });
@@ -62,12 +73,15 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
     const payload = {
-        id: user._id,
-        email: user.email,
-    }
+      id: user._id,
+      email: user.email,
+    };
     const token = await jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRATION,
     });
+
+    await sendEmail(email, "Login Notification", `Hello ${user.name},\n\nYou have successfully logged in to your account.\n\nBest regards,\nYour Service Team`);
+
     return res
       .status(200)
       .json({ message: "User Logged In Successfully", token });
@@ -109,7 +123,7 @@ const forgotPassword = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     user.otp = otp;
-    await user.save();  
+    await user.save();
 
     // Here you would typically send the reset token via email
     return res.status(200).json({
@@ -120,11 +134,11 @@ const forgotPassword = async (req, res) => {
     console.error("Error generating reset token:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
-}
+};
 
 const verifyOtp = async (req, res) => {
-  const {otp} = req.body;
-  try{
+  const { otp } = req.body;
+  try {
     const user = await User.findOne({ otp: otp });
     if (!user) {
       return res.status(404).json({ message: "Invalid OTP" });
@@ -134,39 +148,45 @@ const verifyOtp = async (req, res) => {
     await user.save();
 
     // OTP is valid, you can proceed with password reset or other actions
-    return res.status(200).json({ message: "OTP verified successfully", userId: user._id });
-  }catch(e) {
+    return res
+      .status(200)
+      .json({ message: "OTP verified successfully", userId: user._id });
+  } catch (e) {
     console.error("Error verifying OTP:", e);
     return res.status(500).json({ message: "Internal Server Error" });
   }
-}
+};
 
 const resetPassword = async (req, res) => {
   const { confirmPassword, newPassword } = req.body;
   const { userId } = req.params;
-  console.log(userId)
+  console.log(userId);
   // Validate input
   if (!userId || !newPassword) {
-    return res.status(400).json({ message: "User ID and new password are required" });
+    return res
+      .status(400)
+      .json({ message: "User ID and new password are required" });
   }
   if (newPassword !== confirmPassword) {
     return res.status(400).json({ message: "Passwords do not match" });
   }
 
   try {
-    const user = await User.findById({_id: userId});
+    const user = await User.findById({ _id: userId });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    if(user.otpVerified !== true) { 
-      return res.status(403).json({ message: "OTP not verified, Please Verify Your Otp" });
+    if (user.otpVerified !== true) {
+      return res
+        .status(403)
+        .json({ message: "OTP not verified, Please Verify Your Otp" });
     }
     // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
     user.password = hashedPassword;
     user.otpVerified = false; // Reset OTP verification status
     await user.save();
-    
+
     return res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
     console.error("Error resetting password:", error);
@@ -180,5 +200,5 @@ module.exports = {
   makeAdmin,
   forgotPassword,
   verifyOtp,
-  resetPassword
+  resetPassword,
 };
