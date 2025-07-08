@@ -61,7 +61,7 @@ const carSchema = new mongoose.Schema({
     },
     isRented: {
         type: String,
-        trim: true
+        trim: false
     }
 }, {
     timestamps: true,
