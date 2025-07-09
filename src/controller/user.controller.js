@@ -2,7 +2,8 @@ const User = require("../models/user.schema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
-const { sendEmail } = require("../config/email");
+const { sendEmail, sendTemplateEmail } = require("../config/email");
+const emailTemplates = require("../templates/emailTemplates");
 // Salt rounds for password hashing
 const saltRounds = 10;
 
@@ -44,11 +45,13 @@ const signup = async (req, res) => {
     });
     await newUser.save();
 
-    // Send Email
-    await sendEmail(
+    // Send Welcome Email with Template
+    const welcomeTemplate = emailTemplates.welcomeTemplate(name, emailToken);
+    await sendTemplateEmail(
       email,
-      "Welcome to Our Car Rental Service",
-      `Hello ${name},\n\nThank you for signing up! Your account has been created successfully. Please Verify your email with this token ${emailToken}\n\nBest regards,\nYour Service Team`
+      welcomeTemplate.subject,
+      welcomeTemplate.html,
+      welcomeTemplate.text
     );
 
     return res
@@ -62,7 +65,6 @@ const signup = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
   const token = req.params.token;
-  console.log(req.params)
   if (!token) {
     return res.status(400).json({ message: "No Token" });
   }
@@ -74,6 +76,16 @@ const verifyEmail = async (req, res) => {
     user.isVerified = true;
     user.emailToken = null;
     await user.save();
+
+    // Send email verification success notification
+    const successTemplate = emailTemplates.emailVerificationSuccessTemplate(user.name);
+    await sendTemplateEmail(
+      user.email,
+      successTemplate.subject,
+      successTemplate.html,
+      successTemplate.text
+    );
+
     return res.status(200).json({message: "User Verified Successfully", user})
   } catch (err) {
     console.log(err);
@@ -109,10 +121,14 @@ const login = async (req, res) => {
       expiresIn: process.env.JWT_EXPIRATION,
     });
 
-    await sendEmail(
+    // Send login notification with template
+    const loginTime = new Date().toLocaleString();
+    const loginTemplate = emailTemplates.loginNotificationTemplate(user.name, loginTime);
+    await sendTemplateEmail(
       email,
-      "Login Notification",
-      `Hello ${user.name},\n\nYou have successfully logged in to your account.\n\nBest regards,\nYour Service Team`
+      loginTemplate.subject,
+      loginTemplate.html,
+      loginTemplate.text
     );
 
     return res
@@ -158,10 +174,17 @@ const forgotPassword = async (req, res) => {
     user.otp = otp;
     await user.save();
 
-    // Here you would typically send the reset token via email
+    // Send OTP email with template
+    const otpTemplate = emailTemplates.forgotPasswordTemplate(user.name, otp);
+    await sendTemplateEmail(
+      email,
+      otpTemplate.subject,
+      otpTemplate.html,
+      otpTemplate.text
+    );
+
     return res.status(200).json({
-      message: "Password reset token generated",
-      otp,
+      message: "Password reset OTP sent to your email",
     });
   } catch (error) {
     console.error("Error generating reset token:", error);
@@ -219,6 +242,15 @@ const resetPassword = async (req, res) => {
     user.password = hashedPassword;
     user.otpVerified = false; // Reset OTP verification status
     await user.save();
+
+    // Send password reset confirmation email
+    const confirmationTemplate = emailTemplates.passwordResetConfirmationTemplate(user.name);
+    await sendTemplateEmail(
+      user.email,
+      confirmationTemplate.subject,
+      confirmationTemplate.html,
+      confirmationTemplate.text
+    );
 
     return res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
