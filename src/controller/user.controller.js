@@ -1,6 +1,7 @@
 const User = require("../models/user.schema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
 const { sendEmail } = require("../config/email");
 // Salt rounds for password hashing
 const saltRounds = 10;
@@ -30,12 +31,16 @@ const signup = async (req, res) => {
       expiresIn: process.env.JWT_EXPIRATION,
     });
 
+    // Generate Email Token
+    const emailToken = uuidv4();
+
     // Create new user
     const newUser = new User({
       name,
       email,
       password: hashedPassword,
       token: token,
+      emailToken: emailToken,
     });
     await newUser.save();
 
@@ -43,7 +48,7 @@ const signup = async (req, res) => {
     await sendEmail(
       email,
       "Welcome to Our Car Rental Service",
-      `Hello ${name},\n\nThank you for signing up! Your account has been created successfully.\n\nBest regards,\nYour Service Team`
+      `Hello ${name},\n\nThank you for signing up! Your account has been created successfully. Please Verify your email with this token ${emailToken}\n\nBest regards,\nYour Service Team`
     );
 
     return res
@@ -51,6 +56,27 @@ const signup = async (req, res) => {
       .json({ message: "User Created Succesfully", newUser });
   } catch (error) {
     console.error("Error creating user:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const verifyEmail = async (req, res) => {
+  const token = req.params.token;
+  console.log(req.params)
+  if (!token) {
+    return res.status(400).json({ message: "No Token" });
+  }
+  try {
+    const user = await User.findOne({emailToken: token})
+    if(!user){
+      return res.status(404).json({messsage: "User With this token doesn't Exist"})
+    }
+    user.isVerified = true;
+    user.emailToken = null;
+    await user.save();
+    return res.status(200).json({message: "User Verified Successfully", user})
+  } catch (err) {
+    console.log(err);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
@@ -67,6 +93,9 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    if (!user.isVerified) {
+      return res.status(401).json({ message: "Please Verify Your Email" });
+    }
     // Compare password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -80,7 +109,11 @@ const login = async (req, res) => {
       expiresIn: process.env.JWT_EXPIRATION,
     });
 
-    await sendEmail(email, "Login Notification", `Hello ${user.name},\n\nYou have successfully logged in to your account.\n\nBest regards,\nYour Service Team`);
+    await sendEmail(
+      email,
+      "Login Notification",
+      `Hello ${user.name},\n\nYou have successfully logged in to your account.\n\nBest regards,\nYour Service Team`
+    );
 
     return res
       .status(200)
@@ -201,4 +234,5 @@ module.exports = {
   forgotPassword,
   verifyOtp,
   resetPassword,
+  verifyEmail,
 };
