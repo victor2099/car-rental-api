@@ -4,6 +4,13 @@ const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const { sendEmail, sendTemplateEmail } = require("../config/email");
 const emailTemplates = require("../templates/emailTemplates");
+const { OAuth2Client } = require('google-auth-library');
+    const { google } = require('googleapis');
+
+
+// Initialize Google OAuth client
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 // Salt rounds for password hashing
 const saltRounds = 10;
 
@@ -259,6 +266,263 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// Initiate Google OAuth - Generate OAuth URL
+const initiateGoogleAuth = async (req, res) => {
+  try {
+    
+    // Create OAuth2 client
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback'
+    );
+
+    // Generate the url that will be used for the consent dialog
+    const authorizeUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email'
+      ],
+      include_granted_scopes: true,
+      state: JSON.stringify({
+        timestamp: Date.now(),
+        // Add any additional state data you need
+      })
+    });
+
+    return res.status(200).json({
+      message: "Google OAuth URL generated",
+      authUrl: authorizeUrl
+    });
+
+  } catch (error) {
+    console.error("Error generating Google OAuth URL:", error);
+    return res.status(500).json({ message: "Failed to generate OAuth URL" });
+  }
+};
+
+// Handle Google OAuth Callback
+const handleGoogleCallback = async (req, res) => {
+  const { code, state, error } = req.query;
+  
+  if (error) {
+    return res.status(400).json({ message: "OAuth authorization denied", error });
+  }
+
+  if (!code) {
+    return res.status(400).json({ message: "Authorization code is required" });
+  }
+
+  try {
+    
+    // Create OAuth2 client
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback'
+    );
+
+    // Exchange authorization code for access token
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // Get user information
+    const oauth2 = google.oauth2({
+      auth: oauth2Client,
+      version: 'v2'
+    });
+
+    const { data } = await oauth2.userinfo.get();
+    
+    const {
+      id: googleId,
+      email,
+      name,
+      picture: avatar,
+      verified_email: emailVerified
+    } = data;
+
+    if (!emailVerified) {
+      return res.status(400).json({ message: "Google email not verified" });
+    }
+
+    // Check if user exists with this Google ID
+    let user = await User.findOne({ googleId });
+    let isNewUser = false;
+    
+    if (!user) {
+      // Check if user exists with this email (regular signup)
+      user = await User.findOne({ email });
+      
+      if (user) {
+        // Link Google account to existing user
+        user.googleId = googleId;
+        user.provider = 'google';
+        user.avatar = avatar;
+        user.isVerified = true; // Ensure Google users are verified
+        await user.save();
+      } else {
+        // Create new user with Google OAuth
+        user = new User({
+          name,
+          email,
+          googleId,
+          provider: 'google',
+          avatar,
+          isVerified: true // Google accounts are pre-verified
+        });
+        await user.save();
+        isNewUser = true;
+
+        // Send welcome email for new Google users
+        const welcomeTemplate = emailTemplates.googleWelcomeTemplate(name);
+        await sendTemplateEmail(
+          email,
+          welcomeTemplate.subject,
+          welcomeTemplate.html,
+          welcomeTemplate.text
+        );
+      }
+    }
+
+    // Generate JWT token
+    const jwtPayload = {
+      id: user._id,
+      email: user.email,
+      provider: user.provider
+    };
+    
+    const token = await jwt.sign(jwtPayload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRATION,
+    });
+
+    // Send login notification (only for existing users)
+    if (!isNewUser) {
+      const loginTime = new Date().toLocaleString();
+      const loginTemplate = emailTemplates.loginNotificationTemplate(user.name, loginTime);
+      await sendTemplateEmail(
+        email,
+        loginTemplate.subject,
+        loginTemplate.html,
+        loginTemplate.text
+      );
+    }
+
+    // Option 1: Redirect to frontend with token in URL params (not recommended for production)
+    // const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    // return res.redirect(`${frontendUrl}/auth/success?token=${token}`);
+
+    // Option 2: Redirect to frontend with success page that fetches token
+    // const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    // Store token temporarily in session or cache with short expiration
+    // return res.redirect(`${frontendUrl}/auth/success?authId=${temporaryId}`);
+
+    // Option 3: Return JSON response (for API-only approach)
+    return res.status(200).json({
+      message: "Google authentication successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        provider: user.provider,
+        isVerified: user.isVerified
+      }
+    });
+
+  } catch (error) {
+    console.error("Google OAuth callback error:", error);
+    return res.status(500).json({ message: "Google authentication failed" });
+  }
+};
+
+// Unlink Google Account
+const unlinkGoogle = async (req, res) => {
+  const { userId } = req.params;
+  
+  try {
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.provider === 'google' && !user.password) {
+      return res.status(400).json({ 
+        message: "Cannot unlink Google account without setting a password first" 
+      });
+    }
+
+    // Remove Google association
+    user.googleId = undefined;
+    user.provider = 'local';
+    user.avatar = undefined;
+    await user.save();
+
+    return res.status(200).json({ 
+      message: "Google account unlinked successfully" 
+    });
+
+  } catch (error) {
+    console.error("Error unlinking Google account:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// Set password for Google users who want to add local authentication
+const setPasswordForGoogleUser = async (req, res) => {
+  const { userId } = req.params;
+  const { password, confirmPassword } = req.body;
+
+  if (!password || !confirmPassword) {
+    return res.status(400).json({ message: "Password and confirm password are required" });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: "Passwords do not match" });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ message: "Password must be at least 6 characters long" });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.provider !== 'google') {
+      return res.status(400).json({ message: "This endpoint is only for Google users" });
+    }
+
+    // Hash and set password
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    user.password = hashedPassword;
+    await user.save();
+
+    // Send confirmation email
+    const confirmationTemplate = emailTemplates.passwordSetConfirmationTemplate(user.name);
+    await sendTemplateEmail(
+      user.email,
+      confirmationTemplate.subject,
+      confirmationTemplate.html,
+      confirmationTemplate.text
+    );
+
+    return res.status(200).json({ 
+      message: "Password set successfully. You can now use both Google and email/password login." 
+    });
+
+  } catch (error) {
+    console.error("Error setting password for Google user:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   signup,
   login,
@@ -267,4 +531,8 @@ module.exports = {
   verifyOtp,
   resetPassword,
   verifyEmail,
+  initiateGoogleAuth,
+  handleGoogleCallback,
+  unlinkGoogle,
+  setPasswordForGoogleUser,
 };

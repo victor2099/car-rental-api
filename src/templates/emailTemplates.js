@@ -356,7 +356,152 @@ const emailTemplates = {
         The Car Rental Service Team
       `
     };
+  },
+
+  // Google Welcome Template
+  googleWelcomeTemplate: (name) => {
+    return {
+      subject: 'Welcome to Car Rental Service - Google Account Connected!',
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Welcome via Google</title>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #4285f4 0%, #db4437 50%, #f4b400 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+                .google-badge { background: #4285f4; color: white; padding: 10px 20px; border-radius: 25px; display: inline-block; margin: 20px 0; }
+                .features-box { background: #fff; padding: 20px; border-radius: 5px; margin: 20px 0; }
+                .button { display: inline-block; background: #4285f4; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+                .footer { text-align: center; margin-top: 30px; color: #6c757d; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🚗 Welcome to Car Rental Service!</h1>
+                <div class="google-badge">
+                    <strong>✓ Connected with Google</strong>
+                </div>
+            </div>
+            <div class="content">
+                <h2>Hello ${name}!</h2>
+                <p>Welcome! You've successfully signed up using your Google account. Your account is ready to use immediately!</p>
+                
+                <div class="features-box">
+                    <h3>🎉 Your Account Benefits:</h3>
+                    <ul>
+                        <li>✅ <strong>Instant Access</strong> - No email verification needed</li>
+                        <li>✅ <strong>Secure Login</strong> - Protected by Google's security</li>
+                        <li>✅ <strong>Quick Booking</strong> - Start renting immediately</li>
+                        <li>✅ <strong>Profile Sync</strong> - Your Google profile is automatically linked</li>
+                    </ul>
+                </div>
+                
+                <h3>🚀 Ready to Get Started?</h3>
+                <p>Browse our extensive fleet and book your perfect rental car today!</p>
+                
+                <p style="text-align: center;">
+                    <a href="#" class="button">Browse Our Fleet</a>
+                </p>
+            </div>
+            <div class="footer">
+                <p>Best regards,<br>The Car Rental Service Team</p>
+                <p><small>You signed up using Google. You can add a password later if you want additional login options.</small></p>
+            </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Welcome to Car Rental Service!
+        
+        Hello ${name},
+        
+        Welcome! You've successfully signed up using your Google account.
+        
+        Your account benefits:
+        - Instant access - no email verification needed
+        - Secure login protected by Google
+        - Quick booking - start renting immediately
+        - Profile sync with your Google account
+        
+        Ready to get started? Browse our fleet and book your perfect rental car!
+        
+        Best regards,
+        The Car Rental Service Team
+      `
+    };
+  },
+
+  // Password Set Confirmation Template
+  passwordSetConfirmationTemplate: (name) => {
+    return {
+      subject: 'Password Added Successfully - Car Rental Service',
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Password Set Confirmation</title>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #28a745 0%, #4285f4 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+                .success-box { background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745; }
+                .info-box { background: #e2e3e5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                .footer { text-align: center; margin-top: 30px; color: #6c757d; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🔐 Password Added Successfully!</h1>
+            </div>
+            <div class="content">
+                <h2>Hello ${name}!</h2>
+                
+                <div class="success-box">
+                    <h3>✅ Password Set Successfully!</h3>
+                    <p>You can now log in using both Google and your email/password combination.</p>
+                </div>
+                
+                <div class="info-box">
+                    <h3>🔑 Your Login Options:</h3>
+                    <ul>
+                        <li><strong>Google Sign-In:</strong> Continue using your Google account</li>
+                        <li><strong>Email & Password:</strong> Use your email and the password you just set</li>
+                    </ul>
+                </div>
+                
+                <p>Having multiple login options gives you more flexibility and ensures you can always access your account.</p>
+            </div>
+            <div class="footer">
+                <p>Best regards,<br>The Car Rental Service Team</p>
+            </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Password Added Successfully!
+        
+        Hello ${name},
+        
+        Your password has been set successfully!
+        
+        You can now log in using both:
+        - Google Sign-In (continue using your Google account)
+        - Email & Password (use your email and new password)
+        
+        Having multiple login options gives you more flexibility.
+        
+        Best regards,
+        The Car Rental Service Team
+      `
+    };
   }
+
 };
 
 module.exports = emailTemplates;
