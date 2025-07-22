@@ -5,9 +5,8 @@ const { v4: uuidv4 } = require("uuid");
 const { sendEmail, sendTemplateEmail } = require("../config/email");
 const emailTemplates = require("../templates/emailTemplates");
 const { OAuth2Client } = require('google-auth-library');
-    const { google } = require('googleapis');
-
-
+const { google } = require('googleapis');
+const { upload, deleteImage, extractPublicId } = require('../config/cloudinary');
 // Initialize Google OAuth client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -523,6 +522,195 @@ const setPasswordForGoogleUser = async (req, res) => {
   }
 };
 
+// Upload Profile Picture
+const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided" });
+    }
+
+    const userId = req.user.id; 
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Delete old profile picture if exists
+    if (user.profilePicture?.publicId) {
+      try {
+        await deleteImage(user.profilePicture.publicId);
+      } catch (error) {
+        console.error('Error deleting old profile picture:', error);
+        // Continue with upload even if deletion fails
+      }
+    }
+
+    // Update user with new profile picture
+    user.profilePicture = {
+      url: req.file.path,
+      publicId: req.file.filename,
+      uploadedAt: new Date()
+    };
+
+    // Also update the avatar field for backward compatibility
+    user.avatar = req.file.path;
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Profile picture uploaded successfully",
+      profilePicture: {
+        url: user.profilePicture.url,
+        uploadedAt: user.profilePicture.uploadedAt
+      }
+    });
+
+  } catch (error) {
+    console.error("Error uploading profile picture:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// Get User Profile (including profile picture)
+const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('-password -otp -emailToken -token');
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({
+      message: "User profile retrieved successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        isVerified: user.isVerified,
+        provider: user.provider,
+        avatar: user.avatar,
+        profilePicture: user.profilePicture,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+
+  } catch (error) {
+    console.error("Error getting user profile:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// Delete Profile Picture
+const deleteProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.profilePicture?.publicId) {
+      return res.status(400).json({ message: "No profile picture to delete" });
+    }
+
+    // Delete from Cloudinary
+    try {
+      await deleteImage(user.profilePicture.publicId);
+    } catch (error) {
+      console.error('Error deleting image from Cloudinary:', error);
+      // Continue with database update even if Cloudinary deletion fails
+    }
+
+    // Remove profile picture from user
+    user.profilePicture = {
+      url: null,
+      publicId: null,
+      uploadedAt: null
+    };
+    user.avatar = null;
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Profile picture deleted successfully"
+    });
+
+  } catch (error) {
+    console.error("Error deleting profile picture:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// Update User Profile (name, email, etc.)
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, email } = req.body;
+
+    if (!name && !email) {
+      return res.status(400).json({ message: "At least one field (name or email) is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if email is being changed and if it already exists
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+      
+      // If email is changed, mark as unverified
+      user.email = email;
+      user.isVerified = false;
+      
+      // Generate new email token for verification
+      const emailToken = uuidv4();
+      user.emailToken = emailToken;
+      
+      // Send verification email
+      const welcomeTemplate = emailTemplates.welcomeTemplate(name || user.name, emailToken);
+      await sendTemplateEmail(
+        email,
+        welcomeTemplate.subject,
+        welcomeTemplate.html,
+        welcomeTemplate.text
+      );
+    }
+
+    if (name) {
+      user.name = name;
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message: email && email !== user.email 
+        ? "Profile updated successfully. Please verify your new email address." 
+        : "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isVerified: user.isVerified,
+        profilePicture: user.profilePicture
+      }
+    });
+
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   signup,
   login,
@@ -535,4 +723,8 @@ module.exports = {
   handleGoogleCallback,
   unlinkGoogle,
   setPasswordForGoogleUser,
+  uploadProfilePicture,
+  getUserProfile,
+  deleteProfilePicture,
+  updateProfile,
 };

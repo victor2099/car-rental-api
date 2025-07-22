@@ -31,6 +31,20 @@ const userSchema = new mongoose.Schema({
     avatar: {
         type: String // For storing user's profile picture URL
     },
+    profilePicture: {
+        url: {
+            type: String,
+            default: null
+        },
+        publicId: {
+            type: String,
+            default: null
+        },
+        uploadedAt: {
+            type: Date,
+            default: null
+        }
+    },
     isAdmin: {
         type: Boolean,
         default: false
