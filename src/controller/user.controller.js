@@ -82,9 +82,10 @@ const getUsers = async(req, res) => {
 }
 
 const makeAdmin = async (req, res) => {
-  const { userId } = req.params;
+  const { id } = req.params;
+  console.log( id );
   try {
-    const user = await User.findById(userId);
+    const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

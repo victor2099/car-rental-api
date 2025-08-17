@@ -8,6 +8,6 @@ router.post('/signup', signup);
 router.post('/login', login);
 router.post('/makeAdmin/:id', makeAdmin);
 router.get('/getUsers', getUsers);
-router.get('/getUsers/:id', getUsersById);
+router.get('/getUsersById/:id', getUsersById);
 
 module.exports = router
