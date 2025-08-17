@@ -27,7 +27,7 @@ const rentCar = async (req, res) => {
       tx_ref,
       amount: totalPrice,
       currency: "NGN",
-      redirect_url:`https:car-rental-api-ik0u.onrender.com/`,
+      redirect_url:`https:car-rental-api-ik0u.onrender.com/api/cars/verify`,
       rentingUser,
       startDate: startDate,
       endDate:endDate,
@@ -73,7 +73,7 @@ const rentCar = async (req, res) => {
 };
 
 const verifyPayment = async(req,res) => {
-  const{ transaction_id } = req.query;
+  const{ status, tx_ref, transaction_id } = req.query;
 
   const verify = await axios.post(
 
