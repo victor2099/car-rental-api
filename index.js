@@ -1,6 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const morgan = require('morgan')
+const morgan = require('morgan');
 const connectDB = require('./src/config/db');
 const userRouter = require('./src/routes/user.routes');
 const carRouter = require('./src/routes/cars.routes');
