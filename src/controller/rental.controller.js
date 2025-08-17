@@ -3,9 +3,9 @@ const { flw } = require('../utils/flutterwave');
 const User = require("../models/user.schema")
 
 const rentCar = async (req, res) => {
-  const { carId } = req.params;
-  
-  const { startDate, endDate, totalPrice, userId } = req.body;
+  const { id } = req.params;
+  const { startDate, endDate, totalPrice } = req.body;
+  const userId = req.user.id;
   const rentingUser = await User.findById(userId);
   try {
     // Find the car by ID
