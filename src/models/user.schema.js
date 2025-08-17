@@ -14,36 +14,7 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: function() {
-            return !this.googleId; // Password not required if using Google OAuth
-        },
-        minlength: 6
-    },
-    googleId: {
-        type: String,
-        // sparse: true // Allow multiple null values but unique non-null values
-    },
-    provider: {
-        type: String,
-        enum: ['local', 'google'],
-        default: 'local'
-    },
-    avatar: {
-        type: String // For storing user's profile picture URL
-    },
-    profilePicture: {
-        url: {
-            type: String,
-            default: null
-        },
-        publicId: {
-            type: String,
-            default: null
-        },
-        uploadedAt: {
-            type: Date,
-            default: null
-        }
+        required: true 
     },
     isAdmin: {
         type: Boolean,
@@ -56,11 +27,8 @@ const userSchema = new mongoose.Schema({
     token: {
         type: String
     },
-    emailToken: {
-        type: String
-    },
     otp: {
-        type: String
+        type: Number
     },
     otpVerified: {
         type: Boolean,

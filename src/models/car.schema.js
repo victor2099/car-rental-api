@@ -46,8 +46,7 @@ const carSchema = new mongoose.Schema({
         trim: true
     },
     totalPrice: {
-        type: Number,
-        trim: true
+        type: Number
     },
     status: {
         type: String,
