@@ -8,20 +8,10 @@ const rentCar = async (req, res) => {
   const { startDate, endDate, totalPrice } = req.body;
   const userId = req.user.id;
   const rentingUser = await User.findById(userId);
-  try {
-    // Find the car by ID
-    const car = await Car.findById(carId);
-    if (!car) {
-      return res.status(404).json({ message: "Car not found" });
-    }
+  const car = await Car.findById(carId);
 
-    // Check if the car is already rented
-    if (car.isRented) {
-      return res.status(400).json({ message: "Car is already rented" });
-    }
 
-    // Initializing Payment
-    const tx_ref = `rent_${carId}_${Date.now()}`;
+     const tx_ref = `rent_${carId}_${Date.now()}`;
     const payload = {
       id: Math.floor(100000 + Math.random() * 900000),
       tx_ref,
@@ -40,6 +30,17 @@ const rentCar = async (req, res) => {
         title: "Car Rental Nigeria",
         description: "payment for Car Rental"
       }
+    }
+
+  try {
+    // Find the car by ID
+    if (!car) {
+      return res.status(404).json({ message: "Car not found" });
+    }
+
+    // Check if the car is already rented
+    if (car.isRented) {
+      return res.status(400).json({ message: "Car is already rented" });
     }
 
     try {
