@@ -9,8 +9,6 @@ router.get('/search-cars', searchCars);
 router.post('/add-car',isAuthenticated, addCar);
 router.put('/edit-car/:carId',isAuthenticated, editCar);
 router.delete('/delete-car/:carId',isAuthenticated, deleteCar);
-
-
-router.post('/rent-car/:carId', isAuthenticated, rentCar)
+router.post('/rent-car/:carId', isAuthenticated, rentCar);
 
 module.exports = router;
