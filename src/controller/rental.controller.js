@@ -27,7 +27,7 @@ const rentCar = async (req, res) => {
       tx_ref,
       amount: totalPrice,
       currency: "NGN",
-      redirect_url:`https:car-rental-api-ik0u.onrender.com/api/cars/verify`,
+      redirect_url: "https://car-rental-api-ik0u.onrender.com/api/cars/verify",
       rentingUser,
       startDate: startDate,
       endDate:endDate,
@@ -62,6 +62,8 @@ const rentCar = async (req, res) => {
       car.totalPrice = totalPrice;
       car.status = "pending"; // Set initial status to pending
       await car.save();
+
+
     } catch(error) {
       console.log(error);
       return res.status(500).json({error: "Unable to initialize payment"});
@@ -74,16 +76,15 @@ const rentCar = async (req, res) => {
 
 const verifyPayment = async(req,res) => {
   const{ status, tx_ref, transaction_id } = req.query;
-
-  const verify = await axios.post(
-
-    `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
-    {
-      headers:{        
-        Authorization: `Bearer ${process.env.SECRET_KEY}`
-      },
-    }
-  )
+     const verify = await axios.post(
+        `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+        payload,
+        {
+          headers:{
+            Authorization: `Bearer ${process.env.SECRET_KEY}`,
+          },
+        }
+      )
   try{
     if(verify.data.data.status === "successful") {
     car.isRented = true;
