@@ -1,15 +1,16 @@
 const Car = require("../models/car.schema");
 const { flw } = require('../utils/flutterwave');
-const User = require("../models/user.schema")
+const axios = require('axios');
+const User = require("../models/user.schema");
 
 const rentCar = async (req, res) => {
-  const { id } = req.params;
+  const { carId = id } = req.params;
   const { startDate, endDate, totalPrice } = req.body;
   const userId = req.user.id;
   const rentingUser = await User.findById(userId);
   try {
     // Find the car by ID
-    const car = await Car.findById(id);
+    const car = await Car.findById(carId);
     if (!car) {
       return res.status(404).json({ message: "Car not found" });
     }
@@ -22,65 +23,92 @@ const rentCar = async (req, res) => {
     // Initializing Payment
     const tx_ref = `rent_${carId}_${Date.now()}`;
     const payload = {
+      id: Math.floor(100000 + Math.random() * 900000),
       tx_ref,
       amount: totalPrice,
       currency: "NGN",
-      redirect_url: `http://localhost:${PORT}`,
+      redirect_url:`http://localhost:${process.env.PORT}/api/cars/verify#redirect_as_post`||`https:car-rental-api-ik0u.onrender.com/api/cars/verify#redirect_as_post`,
       rentingUser,
       startDate: startDate,
       endDate:endDate,
       payment_options: "card, banktransfer, ussd",
-      meta:{
-        carId
+      customer: {
+        email: rentingUser.email,
+        name: rentingUser.name
+      },
+      customizations: {
+        title: "Car Rental Nigeria",
+        description: "payment for Car Rental"
       }
     }
 
     try {
-      const response = await flw.Payment.create(payload);
-      car.isRented = true;
+      const response = await axios.post(
+        "https://api.flutterwave.com/v3/payments",
+        payload,
+        {
+          headers:{
+            Authorization: `Bearer ${process.env.SECRET_KEY}`,
+            "Content-Type":"application/json"
+          },
+        }
+      )
+      const checkoutUrl = response.data.data.link
+      console.log("checkout link:", checkoutUrl)
+      car.isRented = false;
       car.rentedBy = userId;
       car.startDate = startDate;
       car.endDate = endDate;
       car.totalPrice = totalPrice;
       car.status = "pending"; // Set initial status to pending
       await car.save();
-      if (response) {
-        const{ transaction_id} = req.query;
-        try{
-        const response = await flw.Transaction.verify({id: transaction_id});
-        if(response.data.status === "successful") {
-          car.isRented = true;
-          car.rentedBy = userId;
-          car.startDate = startDate;
-          car.endDate = endDate;
-          car.totalPrice = totalPrice;
-          car.status = "approved"; // Set final status to approved
-          await car.save();      
-          return res.status(200).json({ message: "Car rented successfully", car });
-        }
-        return res.send("Payment failed");
-      } catch (e) {
-        console.log(e);
-        car.isRented = true;
-        car.rentedBy = userId;
-        car.startDate = startDate;
-        car.endDate = endDate;
-        car.totalPrice = totalPrice;
-        car.status = "rejected"; // Set final status to rejected
-        res.send("Error verifying payment");
-      }}
-      return res.json({ checkoutUrl: response.data.link, tx_ref});
     } catch(error) {
       console.log(error);
       return res.status(500).json({error: "Unable to initialize payment"});
+    }}
+    catch(e) {
+      console.log(e);
+      return res.status(500).json({error: "transaction error"});
     }
-  } catch (error) {
-    console.error("Error renting car:", error);
-    return res.status(500).json({ message: "Internal Server Error" });
-  }
 };
 
+const verifyPayment = async(req,res) => {
+  const{ transaction_id } = req.query;
+
+  const verify = await axios.post(
+
+    `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+    {
+      headers:{        
+        Authorization: `Bearer ${process.env.SECRET_KEY}`
+      },
+    }
+  )
+  try{
+    if(verify.data.data.status === "successful") {
+    car.isRented = true;
+    car.rentedBy = userId;
+    car.startDate = startDate;
+    car.endDate = endDate;
+    car.totalPrice = totalPrice;
+    car.status = "approved"; // Set final status to approved
+    await car.save();      
+    return res.status(200).json({ message: "Car rented successfully", car });
+  } else{
+    return res.status(500).json({message: "Car could not be rented successfully"})
+  }} catch(e) {
+    console.log(e);
+    car.isRented = true;
+    car.rentedBy = userId;
+    car.startDate = startDate;
+    car.endDate = endDate;
+    car.totalPrice = totalPrice;
+    car.status = "rejected"; // Set final status to rejected
+    res.send("Error verifying payment");
+  }
+}
 
 module.exports = {
-  rentCar
+  rentCar,
+  verifyPayment
 };
