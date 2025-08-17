@@ -9,7 +9,7 @@ const rentCar = async (req, res) => {
   const rentingUser = await User.findById(userId);
   try {
     // Find the car by ID
-    const car = await Car.findById(carId);
+    const car = await Car.findById(id);
     if (!car) {
       return res.status(404).json({ message: "Car not found" });
     }
