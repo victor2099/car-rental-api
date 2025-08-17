@@ -56,15 +56,9 @@ const rentCar = async (req, res) => {
       )
       const checkoutUrl = response.data.data.link
       console.log("checkout link:", checkoutUrl)
-      car.isRented = false;
-      car.rentedBy = userId;
-      car.startDate = startDate;
-      car.endDate = endDate;
-      car.totalPrice = totalPrice;
       car.status = "pending"; // Set initial status to pending
       await car.save();
-
-
+      
     } catch(error) {
       console.log(error);
       return res.status(500).json({error: "Unable to initialize payment"});
