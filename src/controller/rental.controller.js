@@ -27,7 +27,7 @@ const rentCar = async (req, res) => {
       tx_ref,
       amount: totalPrice,
       currency: "NGN",
-      redirect_url:`http://localhost:${process.env.PORT}/api/cars/verify#redirect_as_post`||`https:car-rental-api-ik0u.onrender.com/api/cars/verify#redirect_as_post`,
+      redirect_url:`https:car-rental-api-ik0u.onrender.com/api/cars/verify#redirect_as_post`,
       rentingUser,
       startDate: startDate,
       endDate:endDate,
