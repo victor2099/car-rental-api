@@ -4,11 +4,11 @@ const axios = require('axios');
 const User = require("../models/user.schema");
 
 const rentCar = async (req, res) => {
+    const userId = req.user.id;
   const { carId = id } = req.params;
   const { startDate, endDate, totalPrice } = req.body;
   const rentingUser = await User.findById(userId);
   const car = await Car.findById(carId);
-    const userId = req.user.id;
     const tx_ref = `rent_${carId}_${Date.now()}`;
     const payload = {
       id: Math.floor(100000 + Math.random() * 900000),
