@@ -6,12 +6,10 @@ const User = require("../models/user.schema");
 const rentCar = async (req, res) => {
   const { carId = id } = req.params;
   const { startDate, endDate, totalPrice } = req.body;
-  const userId = req.user.id;
   const rentingUser = await User.findById(userId);
   const car = await Car.findById(carId);
-
-
-     const tx_ref = `rent_${carId}_${Date.now()}`;
+    const userId = req.user.id;
+    const tx_ref = `rent_${carId}_${Date.now()}`;
     const payload = {
       id: Math.floor(100000 + Math.random() * 900000),
       tx_ref,
@@ -58,7 +56,7 @@ const rentCar = async (req, res) => {
       console.log("checkout link:", checkoutUrl)
       car.status = "pending"; // Set initial status to pending
       await car.save();
-      
+
     } catch(error) {
       console.log(error);
       return res.status(500).json({error: "Unable to initialize payment"});
@@ -70,17 +68,15 @@ const rentCar = async (req, res) => {
 };
 
 const verifyPayment = async(req,res) => {
-  const{ status, tx_ref, transaction_id } = req.query;
-     const verify = await axios.post(
-        `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
-        payload,
+  try{
+      const{ status, tx_ref, transaction_id } = req.query;
+     const verify = await axios.post(`https://api.flutterwave.com/v3/transactions${transaction_id}/verify`,
         {
           headers:{
             Authorization: `Bearer ${process.env.SECRET_KEY}`,
           },
         }
       )
-  try{
     if(verify.data.data.status === "successful") {
     car.isRented = true;
     car.rentedBy = userId;
