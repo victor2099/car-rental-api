@@ -57,15 +57,22 @@ const rentCar = async (req, res) => {
       console.log("checkout link:", checkoutUrl)
       car.status = "pending"; // Set initial status to pending
       await car.save();
-      setTimeout(verifyPayment(), 40000)
+      try{
+      if( car.status === "pending") { 
       car.isRented = true;
       car.rentedBy = userId;
       car.startDate = startDate;
       car.endDate = endDate;
       car.totalPrice = totalPrice;
       car.status = "approved"; // Set final status to approved
-      await car.save();  
-    } catch(error) {
+      await car.save();
+      return res.status(200).json({ message: "Car rented successfully"});
+    } else{
+      return res.status(500).json({message: "Car could not be rented successfully"})
+    }}catch(e) {
+      console.log(e);
+      res.status(500).json({message:"Error verifying payment"});
+    }} catch(error) {
       console.log(error);
       return res.status(500).json({error: "Unable to initialize payment"});
     }}
@@ -80,26 +87,6 @@ const rentCar = async (req, res) => {
       return res.status(500).json({error: "transaction error"});
     }
 };
-
-
-const verifyPayment = async(req,res) => { 
-    try{
-        const{ status, tx_ref, transaction_id } = req.query;
-      const verify = await axios.post(`https://api.flutterwave.com/v3/transactions${transaction_id}/verify`,
-        {
-          headers:{
-            Authorization: `Bearer ${process.env.SECRET_KEY}`,
-          },
-        }
-      )
-    if( verify.data.data.status === "successful") {    
-    return res.status(200).json({ message: "Car rented successfully"});
-  } else{
-    return res.status(500).json({message: "Car could not be rented successfully"})
-  }}catch(e) {
-    console.log(e);
-    res.status(500).json({message:"Error verifying payment"});
-  }}
 
 module.exports = {
   rentCar, verifyPayment
