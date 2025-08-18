@@ -26,10 +26,21 @@ npm install .
 ### 3. Add environment variables 
 create a .env file
 ```
-PUBLIC_KEY=FLWSECK_TEST-xxxxxxxxxxxxx-X
+#Flutterwave confinguration
+PUBLIC_KEY=FLWPUBKK_TEST-xxxxxxxxxxxxx-X
 SECRET_KEY=FLWSECK_TEST-xxxxxxxxxxxxx-X
+
+#Application Configuration
 MONGO_URL= YOUR DATABASE URL
 PORT=3000
+
+# JWT Configuration
+JWT_SECRET=your-256bit-secret-token
+JWT_EXPIRATION=expiration-date
+
+# Application Configuration
+PORT=3000
+NODE_ENV=development
 ```
 
 ▶️ Running the Server
