@@ -59,7 +59,7 @@ const rentCar = async (req, res) => {
       console.log("checkout link:", checkoutUrl)
       car.status = "pending"; // Set initial status to pending
       await car.save();
-      await verifyPayment();
+      setTimeout(await verifyPayment(), 40000);
       car.isRented = true;
       car.rentedBy = userId;
       car.startDate = startDate;

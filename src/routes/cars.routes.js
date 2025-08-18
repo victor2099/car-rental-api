@@ -10,5 +10,6 @@ router.post('/add-car',isAuthenticated, addCar);
 router.put('/edit-car/:carId',isAuthenticated, editCar);
 router.delete('/delete-car/:carId',isAuthenticated, deleteCar);
 router.post('/rent-car/:carId', isAuthenticated, rentCar);
-router.get('/verify', verifyPayment)
+router.get('/verify', verifyPayment);
+
 module.exports = router;
