@@ -57,9 +57,10 @@ const rentCar = async (req, res) => {
       car.status = "pending"; // Set initial status to pending
       await car.save();
 
-        try{
-      const{ status, tx_ref, transaction_id } = req.query;
-     module.exports = verifyPayment = await axios.post(`https://api.flutterwave.com/v3/transactions${transaction_id}/verify`,
+      try{
+     module.exports = verifyPayment = async(req, res) => {
+        const{ status, tx_ref, transaction_id } = req.query;
+      await axios.post(`https://api.flutterwave.com/v3/transactions${transaction_id}/verify`,
         {
           headers:{
             Authorization: `Bearer ${process.env.SECRET_KEY}`,
@@ -77,7 +78,7 @@ const rentCar = async (req, res) => {
     return res.status(200).json({ message: "Car rented successfully", car });
   } else{
     return res.status(500).json({message: "Car could not be rented successfully"})
-  }} catch(e) {
+  }}} catch(e) {
     console.log(e);
     car.isRented = true;
     car.rentedBy = userId;
