@@ -16,7 +16,7 @@ const rentCar = async (req, res) => {
       tx_ref,
       amount: totalPrice,
       currency: "NGN",
-      redirect_url: "https://car-rental-api-ik0u.onrender.com/api/cars/verify",
+      // redirect_url: "https://car-rental-api-ik0u.onrender.com/api/cars/verify",
       rentingUser,
       startDate: startDate,
       endDate:endDate,
@@ -57,6 +57,7 @@ const rentCar = async (req, res) => {
       console.log("checkout link:", checkoutUrl)
       car.status = "pending"; // Set initial status to pending
       await car.save();
+      setTimeout(verifyPayment(), 40000)
       car.isRented = true;
       car.rentedBy = userId;
       car.startDate = startDate;
