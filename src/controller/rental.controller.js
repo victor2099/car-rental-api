@@ -58,7 +58,6 @@ const rentCar = async (req, res) => {
       await car.save();
 
       try{
-     module.exports = verifyPayment = async(req, res) => {
         const{ status, tx_ref, transaction_id } = req.query;
       await axios.post(`https://api.flutterwave.com/v3/transactions${transaction_id}/verify`,
         {
@@ -67,7 +66,7 @@ const rentCar = async (req, res) => {
           },
         }
       )
-    if(verify.data.data.status === "successful") {
+    if( status === "successful") {
     car.isRented = true;
     car.rentedBy = userId;
     car.startDate = startDate;
@@ -78,7 +77,7 @@ const rentCar = async (req, res) => {
     return res.status(200).json({ message: "Car rented successfully", car });
   } else{
     return res.status(500).json({message: "Car could not be rented successfully"})
-  }}} catch(e) {
+  }} catch(e) {
     console.log(e);
     car.isRented = true;
     car.rentedBy = userId;
