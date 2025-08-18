@@ -57,20 +57,9 @@ const rentCar = async (req, res) => {
       car.status = "pending"; // Set initial status to pending
       await car.save();
 
-    } catch(error) {
-      console.log(error);
-      return res.status(500).json({error: "Unable to initialize payment"});
-    }}
-    catch(e) {
-      console.log(e);
-      return res.status(500).json({error: "transaction error"});
-    }
-};
-
-const verifyPayment = async(req,res) => {
-  try{
+        try{
       const{ status, tx_ref, transaction_id } = req.query;
-     const verify = await axios.post(`https://api.flutterwave.com/v3/transactions${transaction_id}/verify`,
+     module.exports = verifyPayment = await axios.post(`https://api.flutterwave.com/v3/transactions${transaction_id}/verify`,
         {
           headers:{
             Authorization: `Bearer ${process.env.SECRET_KEY}`,
@@ -97,10 +86,16 @@ const verifyPayment = async(req,res) => {
     car.totalPrice = totalPrice;
     car.status = "rejected"; // Set final status to rejected
     res.send("Error verifying payment");
-  }
-}
+  }} catch(error) {
+      console.log(error);
+      return res.status(500).json({error: "Unable to initialize payment"});
+    }}
+    catch(e) {
+      console.log(e);
+      return res.status(500).json({error: "transaction error"});
+    }
+};
 
 module.exports = {
-  rentCar,
-  verifyPayment
+  rentCar
 };
