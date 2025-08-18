@@ -2,8 +2,6 @@ const Car = require("../models/car.schema");
 const { flw } = require('../utils/flutterwave');
 const axios = require('axios');
 const User = require("../models/user.schema");
-const express = require('express');
-const app = express();
 
 
 const rentCar = async (req, res) => {
@@ -59,7 +57,6 @@ const rentCar = async (req, res) => {
       console.log("checkout link:", checkoutUrl)
       car.status = "pending"; // Set initial status to pending
       await car.save();
-      setTimeout(await verifyPayment(), 40000);
       car.isRented = true;
       car.rentedBy = userId;
       car.startDate = startDate;
@@ -84,8 +81,8 @@ const rentCar = async (req, res) => {
 };
 
 
-const verifyPayment =  async(req,res) => {
-        try{
+const verifyPayment = async(req,res) => { 
+    try{
         const{ status, tx_ref, transaction_id } = req.query;
       const verify = await axios.post(`https://api.flutterwave.com/v3/transactions${transaction_id}/verify`,
         {
