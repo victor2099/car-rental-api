@@ -17,6 +17,7 @@ const rentCar = async (req, res) => {
       amount: totalPrice,
       currency: "NGN",
       rentingUser,
+      redirect_url: "https://car-rental-api-ik0u.onrender.com/api/cars/verify",
       startDate: startDate,
       endDate:endDate,
       payment_options: "card, banktransfer, ussd",
